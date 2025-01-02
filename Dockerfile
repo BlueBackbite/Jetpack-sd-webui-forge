@@ -68,4 +68,5 @@ ENV DIFFUSERS_CACHE=/data/models/diffusers
 EXPOSE 7870
 
 # default start-up command
-CMD ["/bin/bash", "-c", "cd /opt/sd-webui-forge && python3 launch.py --data=/data/models/sd-forge --enable-insecure-extension-access --listen"] ### --xformers disabled as requested version is currently unsupported
+### --xformers disabled as requested version is currently unsupported
+CMD ["/bin/bash", "-c", "cd /opt/sd-webui-forge && python3 launch.py --data=/data/models/sd-forge --enable-insecure-extension-access --listen"]
