@@ -1,0 +1,71 @@
+#---
+# name: stable-diffusion-webui-forge
+# group: diffusion
+# depends: [pytorch, torchvision, transformers, xformers, pycuda, opencv, onnxruntime]
+# requires: '>=34.4.0'
+# docs: docs.md
+# notes: disabled on JetPack 4
+#---
+
+ARG TAG
+#FROM l4t-diffusion:${TAG}
+#FROM l4t-diffusion:r36.4.0-tensorrt
+FROM dustynv/l4t-pytorch:r36.4.0
+
+#ARG PIP_INDEX_URL=http://jetson.webredirect.org/jp6/cu126
+ARG APP_ROOT_DIR="/opt/sd-webui-forge"
+
+### Setup environment vars, no need to change these
+ARG MAX_JOBS=12
+
+WORKDIR ${APP_ROOT_DIR}
+
+RUN apt-get update && apt-get install -y google-perftools
+
+#return back to app dir
+WORKDIR ${APP_ROOT_DIR}
+
+#### install the new git
+#RUN set -ex && pip3 uninstall torch torchvision xformers -y
+#RUN set -ex && pip3 install torch torchvision --index-url http://jetson.webredirect.org/jp6/cu126 --trusted-host jetson.webredirect.org
+
+# Remove the directory if it exists
+RUN rm -rf /opt/sd-webui-forge
+RUN set -ex && git clone https://github.com/lllyasviel/stable-diffusion-webui-forge.git /opt/sd-webui-forge
+
+# Manual build of requested diffusers
+RUN pip3 install scikit-build build wheel ninja
+ARG DIFFUSERS_VERSION=0.31.0
+RUN set -ex && git clone --branch=v${DIFFUSERS_VERSION} https://github.com/huggingface/diffusers.git /opt/diffusers
+RUN set -ex && cd /opt/diffusers && python3 setup.py --verbose bdist_wheel --dist-dir /opt
+RUN set -ex && pip3 install --no-cache-dir --verbose /opt/diffusers*.whl
+# remove the diffusers source
+RUN set -ex && rm -rf /opt/diffusers
+
+# Build xformers from source
+#ARG XFORMERS_VERSION=0.0.27
+#RUN set -ex && git clone --branch=v${XFORMERS_VERSION} --depth=1 --recursive https://github.com/facebookresearch/xformers /opt/xformers
+##attempt a dirty patch of xformers - specific to 0.27
+#RUN set -ex && cd /opt/xformers && find . -type f -name "*.cpp" -exec sed -i 's/at::autocast::get_autocast_gpu_dtype()/at::autocast::get_autocast_dtype(at::kCUDA)/g' {} \;
+#RUN set -ex && cd /opt/xformers && python3 setup.py --verbose bdist_wheel --dist-dir /opt
+#RUN set -ex && pip3 install --no-cache-dir --verbose /opt/xformers*.whl
+# remove the xformers source
+#RUN set -ex && rm -rf /opt/xformers
+#RUN pip3 install -v -U git+https://github.com/facebookresearch/xformers.git@v0.0.27#egg=xformers
+
+RUN set -ex && python3 launch.py --help
+RUN set -ex && pip3 install -r /opt/sd-webui-forge/requirements_versions.txt
+
+RUN set -ex && rm -rf /var/lib/apt/lists/*   
+RUN set -ex && apt-get clean
+
+# Print torch version
+RUN python3 -c "import torch; import time; print(torch.__version__); time.sleep(5)"
+
+# set the cache dir for models
+ENV DIFFUSERS_CACHE=/data/models/diffusers
+
+EXPOSE 7870
+
+# default start-up command
+CMD ["/bin/bash", "-c", "cd /opt/sd-webui-forge && python3 launch.py --data=/data/models/sd-forge --enable-insecure-extension-access --listen"] ### --xformers disabled as requested version is currently unsupported
