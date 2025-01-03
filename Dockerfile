@@ -69,4 +69,4 @@ EXPOSE 7870
 
 # default start-up command
 ### --xformers disabled as requested version is currently unsupported
-CMD ["/bin/bash", "-c", "cd /opt/sd-webui-forge && python3 launch.py --data=/data/models/sd-forge --enable-insecure-extension-access --listen"]
+CMD ["/bin/bash", "-c", "cd /opt/sd-webui-forge && python3 launch.py --enable-insecure-extension-access --listen"]
