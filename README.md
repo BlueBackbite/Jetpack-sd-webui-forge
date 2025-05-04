@@ -5,3 +5,6 @@ Heavily commented and a mess, but as of 1/2/2025 this works.
 Left the comments in for anyone who wishes to see how to build the dependencies manually.
 
 XFormers 0.0.27 will not build with CUDA 12.6/Torch 2.4.
+
+
+See the Dockerfile_pinned for a version that has a working UI, although it is the older version.
